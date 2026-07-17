@@ -106,10 +106,10 @@ def plot_t(x, fs, **varargs):
     varags:  other arguments are passed to the plot function    
     """
 
+    #make sure x is an array with dimension (N, M)
     x = np.asarray(x)
-    # Convert (N,) -> (N,1)
-    if x.ndim == 1:
-        x = x[:, None]
+    if x.ndim == 1:  x = x[:, None]
+
     N, M = x.shape
 
     t = np.arange(N) / fs
@@ -129,11 +129,9 @@ def plot_fft(x, fs, **varargs):
     varags:  other arguments are passed to the plot function
     """
 
+    #make sure x is an array with dimension (N, M)
     x = np.asarray(x)
-
-    # Convert (N,) -> (N,1)
-    if x.ndim == 1:
-        x = x[:, None]
+    if x.ndim == 1:  x = x[:, None]
 
     N, M = x.shape
 
@@ -185,11 +183,10 @@ def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'densit
     Return:
         df: frequency bin width
     """
-    #Nbins=512
+
+    #make sure x is an array with dimension (N, M)
     x = np.asarray(x)
-    
-    if x.ndim == 1:
-        x = x[:, None]
+    if x.ndim == 1:  x = x[:, None]
 
     if all(np.iscomplex(x)):
         return_onesided = False

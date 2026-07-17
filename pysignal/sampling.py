@@ -17,9 +17,9 @@ def downsample(x, nsamples: int):
     Returns:
         y : ndarray, Downsampled signal
     """
+    #make sure x is an array with dimension (N, M)
     x = np.asarray(x)
-    return x[::nsamples]
-
+    if x.ndim == 1:  x = x[:, None]
 
 def upsample(x, nsamples: int, zoh = False):
     """Upsample a signal by an integer factor. 
@@ -33,11 +33,40 @@ def upsample(x, nsamples: int, zoh = False):
     Returns:
         y : ndarray, Upsampled signal
     """
-    
+    #make sure x is an array with dimension (N, M)
     x = np.asarray(x)
+    if x.ndim == 1:  x = x[:, None]
     return x[::nsamples]
 
+def quantize(x, nbits: int, x_range = (-1.0, 1.0), int_out: bool = False):
+    """Quantize and clip a signal
 
+    Args:
+        x : ndarray, Shape (N,) or (N,M) input data
+        nbits (int): number of quantization nbits.
+        x_range (float, float): (minimum, maximum) input range of x, outside range will be clipped.  
+        int_out (bool, optional): if True, then the output will be simple integers from 0 ... 2**nbits-1
+        signed (bool, optional): _description_. Defaults to True.
+    """
+    #make sure x is an array with dimension (N, M)
+    x = np.asarray(x)
+    if x.ndim == 1:  x = x[:, None]
+    
+    # clip the input data
+    x = np.clip(x, x_range[0], x_range[1]) 
+    
+    steps = 2**nbits-1 
+    rng = x_range[1] - x_range[0]
+    scale = steps / rng
+    shift = -x_range[0]*scale
+    
+    # round to integer
+    x = np.round(x*scale + shift) - shift
+    
+    if int_out:
+        return x.astype(int)
+    else: 
+        return x /scale
 
 ### TODO: 
 # add analog input bandwidth
@@ -50,7 +79,7 @@ def adc(x, fs: float, fs_adc: float, nbits: int, dither = False):
     The output sampling rate will be fs / nsamples
 
     Args:
-        x (_type_): Shape (N,) or (N,M), input data
+        x : ndarray, Shape (N,) or (N,M) input data
         fs (float): sampling rate of the input signal [Hz]
         fs_adc (float): sampling rate of the adc.  fs / fs_adc must be integer.
         nbits (int): number of quantization nbits.
@@ -59,8 +88,9 @@ def adc(x, fs: float, fs_adc: float, nbits: int, dither = False):
     Returns:
          y : ndarray, sampled signal
     """
-    # make sure x is an array
+    #make sure x is an array with dimension (N, M)
     x = np.asarray(x)
+    if x.ndim == 1:  x = x[:, None]
     
     nsamples = fs / fs_adc
     assert int(nsamples)>=1 and np.isclose(nsamples, int(nsamples)), "the ADC sampling rate must be so 'fs_adc = fs / nsamples' where nsamples is an integer"
@@ -68,7 +98,6 @@ def adc(x, fs: float, fs_adc: float, nbits: int, dither = False):
     nsamples = int(nsamples)
 
     x = x[::nsamples]  # decimate
-    x = np.clip(x, -1.0, 1.0) # clip the input data
     
     q = 2**nbits
     if dither:
@@ -80,13 +109,5 @@ def adc(x, fs: float, fs_adc: float, nbits: int, dither = False):
         )
         x =  x + n
     
-    # perform actual quantization
-    # move the scale to 0...1
-    x = (x+1)/2
-    # round to nbits-1
-    x = np.round(x * (2**nbits-1)) / (2**nbits-1)
-    # move the scale back to -1...+1
-    x = 2*x - 1
-    
-    return x
+    return quantize(x, nbits)
     

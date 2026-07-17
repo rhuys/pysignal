@@ -1,7 +1,11 @@
 ## pysignal by Roeland Huys
 #
-# test_ADC: simple ADC test
+# test_DAC: simple DAC test
 #
+# I use ps.bandpass_noise as a reference signal, because a quantized harmonic signal does not create a nice visual noise floor
+# Also we make sure all PSD plots use the same df (display bandwidth) so you can compare the PSD levels
+#
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,53 +13,70 @@ import pysignal as ps
 
 fs = 8e6            # Simulation sample rate
 
-N = 2**14   # number of points
+N = 2**12   # number of simulation points
 
-nsamples = 4
-fs_dac = fs / nsamples  # DAC sample rate
+f_sig = 0.8e6  # harmonic frequency (Hz)
+P_sig = 1      # harmonic power (W)
+B_sig = 0.1e6  # sinal bandwidth (Hz)
+P_noise = 0.01 # noise power (W)
 
+nbits_dac = 3   # number of ADC bits
+ov_dac = 4      # dac oversampling factor
+fs_dac = fs / ov_dac  # adc sample rate
+df = fs / 256   # display bin size for the PSD.  We make it the same for all plots independent on the sampling rate
 
-t = np.arange(N/nsamples)/fs_dac
-x = np.sin(2*np.pi*t * 0.55e6)
+## generate input signal
+#t = np.arange(N)/fs
+#x  = np.sin(2*np.pi*t * 0.8e6)
 
-gain = np.max(abs(x))
-x_adc = ps.adc(x/gain, fs, nsamples=nsamples, nbits=3, dither = False)
-t_adc = np.arange(N/nsamples) / (fs/nsamples)
-fs_adc = fs / nsamples
+# create a bandpass signal
+x = ps.bandpass_noise(N, fs, f_sig, B_sig, P_sig);
+
+# normalize the signal to match maximum output swing
+gain = 1/np.max(abs(x))
+x = x*gain
+
+x_adc = ps.adc(x, fs, fs_adc, nbits=nbits_adc, dither = True)
 
 ### PLOTTING
 
-fig, ax = plt.subplots(2,2)
+fig, ax = ps.subplots(2,2)
 
 ## plot input RF 
 
 # better plot decoration
-ps.nice_axes(ax[0,0])
+ps.axes(ax[0,0], f"input signal, PSD" )
 
-ps.plot_fft(x, fs)
-#plt.ylim(-130, -60)
+ps.plot_PSD(x, fs, Nbins = int(fs / df))
+plt.ylim(-100, -50)
+
+psd_sig_dB = 10*np.log10(P_sig*gain*gain / B_sig)
+plt.text(f_sig, psd_sig_dB, f"sig: {psd_sig_dB:.1f}dB/Hz", ha='center')
 
 # print the total signal power for all signals
-ps.print_power(x)
+#ps.print_power(x)
 
 # draw an arrow
-ps.varrow(fs_adc, f'fs_adc {fs_adc/1e9:.1f}GHz')
+ps.varrow(fs_adc, f'fs_adc {fs_adc/1e6:.1f}MHz')
 
-# time domain plot
-
-ps.nice_axes(ax[0,1])
+ps.axes(ax[0,1], f"input signal, time domain")
 ps.plot_t(x, fs)
-plt.xlim(0, 1e-5)
+plt.xlim(0, 1e-4)
 
 ## plot after ADC sampling
 
-ps.nice_axes(ax[1,0])
+ps.axes(ax[1,0], f"ADC output, {nbits_adc}bits")
 
-ps.plot_fft(x_adc, fs_adc)
+ps.plot_PSD(x_adc, fs_adc, Nbins = int(fs_adc / df))
+plt.ylim(-100, -50)
 
-ps.nice_axes(ax[1,1])
+# compute the quantization noise shown on the PSD
+# the bandwidth of the quantization noise is fs_adc but we add 3dB because the PSD plot folds the power of the negative frequencies
+psd_qn_dB = -(nbits_adc*6.02 + 1.76)  - 10*np.log10(fs_adc) + 3.01
+plt.text(0, psd_qn_dB, f"quant noise: {psd_qn_dB:.1f}dB/Hz")
+
+ps.axes(ax[1,1], f"ADC output, {nbits_adc}bits")
 ps.plot_t(x_adc, fs_adc)
-plt.xlim(0, 1e-5)
+plt.xlim(0, 1e-4)
 
-
-plt.show(block=not plt.isinteractive())  
+if not plt.isinteractive(): plt.show()  
