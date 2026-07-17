@@ -53,7 +53,6 @@ def axes(ax, title = ""):
     plt.sca(ax)
     ax.minorticks_on()
     ax.grid(True)
-    ax.legend()
 
     ax.xaxis.set_major_locator(
         MaxNLocator(
@@ -188,7 +187,8 @@ def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'densit
     x = np.asarray(x)
     if x.ndim == 1:  x = x[:, None]
 
-    if np.all(np.iscomplex(x)):
+    # if the data set is complex, then we cannot return one sided plots
+    if np.any(np.iscomplex(x)):
         return_onesided = False
 
     f, Pxx = periodogram(
@@ -216,8 +216,8 @@ def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'densit
     df = f[1] - f[0]
     
     if not return_onesided:
-        Pxx = np.fft.fftshift(Pxx)
-        f = np.fft.fftshift(f)
+        Pxx = np.fft.fftshift(Pxx, axes=0)
+        f = np.fft.fftshift(f, axes=0)
 
     plt.plot(f, 10*np.log10(Pxx), **varargs)
     plt.xlabel("Frequency [Hz]")
