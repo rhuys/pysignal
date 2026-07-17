@@ -14,7 +14,7 @@
 #    Equation:  psd_sig = P_sig/B_sig   # B is the signal bandwidth
 #  * Selecting a smaller set of samples (SUBSET in the example)  will create a more noisy signal, but does not influence the PSD levels
 
-import numpy as np
+import numpy as np 
 import matplotlib.pyplot as plt
 import pysignal as ps  # my own library
 
