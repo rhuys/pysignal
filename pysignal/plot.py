@@ -80,6 +80,7 @@ def varrow(x, text):
         
     ax = plt.gca()
     ymin, ymax = ax.get_ylim()
+    ymax = ymin + (ymax - ymin) * 0.95
     
     ax.annotate(
         "",
@@ -167,7 +168,7 @@ def plot_fft(x, fs, **varargs):
 
 
 
-def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'density', **varargs):
+def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'density', return_onesided: bool = True, **varargs):
     """plot a power spectral density (periodogram)
         
     real data will be plotted single-sided, and the power of the negative frequencies are added
@@ -178,6 +179,7 @@ def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'densit
         Nbins : int, Displayed number of bins.  The power will be averaged inside the bins. If None, use the native periodogram resolution.
         window: 'flattop', 'boxcar', Window passed to scipy.signal.periodogram()
         scaling: 'density' or 'spectrum'
+        return_onesided: bool:  if True return only positive frequencies.  Will be overridden by False if the data is complex
         varags:  other arguments are passed to the plot function    
         
     Return:
@@ -189,11 +191,15 @@ def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'densit
     if x.ndim == 1:
         x = x[:, None]
 
+    if all(np.iscomplex(x)):
+        return_onesided = False
+
     f, Pxx = periodogram(
         x,
         fs,
         window = window,
         scaling = scaling,
+        return_onesided = return_onesided,
         axis=0
     )
     Nfreq, M = Pxx.shape
@@ -211,6 +217,10 @@ def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'densit
         Pxx = Pxx[:Nuse].reshape(-1, group, M).mean(axis=1)
 
     df = f[1] - f[0]
+    
+    if not return_onesided:
+        Pxx = np.fft.fftshift(Pxx)
+        f = np.fft.fftshift(f)
 
     plt.plot(f, 10*np.log10(Pxx), **varargs)
     plt.xlabel("Frequency [Hz]")

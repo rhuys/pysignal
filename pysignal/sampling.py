@@ -43,7 +43,7 @@ def upsample(x, nsamples: int, zoh = False):
 # add analog input bandwidth
 # add clock jitter
 # add DNL / INL
-def adc(x, fs: float, nsamples: int, nbits: int, dither = False):
+def adc(x, fs: float, fs_adc: float, nbits: int, dither = False):
     """basic ADC model; sample an input signal with simulation sampling rate fs, to an ADC sampling rate fs/nsamples
     the full input amd output scale is assumed -1 ... +1
     the input signal is clipped.
@@ -52,7 +52,7 @@ def adc(x, fs: float, nsamples: int, nbits: int, dither = False):
     Args:
         x (_type_): Shape (N,) or (N,M), input data
         fs (float): sampling rate of the input signal [Hz]
-        nsamples (int): decimation factor.  
+        fs_adc (float): sampling rate of the adc.  fs / fs_adc must be integer.
         nbits (int): number of quantization nbits.
         dither (bool, optional): add quantization noise instead of perfrming actual quantization (default False). Defaults to False.
 
@@ -61,6 +61,11 @@ def adc(x, fs: float, nsamples: int, nbits: int, dither = False):
     """
     # make sure x is an array
     x = np.asarray(x)
+    
+    nsamples = fs / fs_adc
+    assert int(nsamples)>=1 and np.isclose(nsamples, int(nsamples)), "the ADC sampling rate must be so 'fs_adc = fs / nsamples' where nsamples is an integer"
+    
+    nsamples = int(nsamples)
 
     x = x[::nsamples]  # decimate
     x = np.clip(x, -1.0, 1.0) # clip the input data
@@ -74,7 +79,7 @@ def adc(x, fs: float, nsamples: int, nbits: int, dither = False):
             size = x.shape
         )
         x =  x + n
-
+    
     # perform actual quantization
     # move the scale to 0...1
     x = (x+1)/2
