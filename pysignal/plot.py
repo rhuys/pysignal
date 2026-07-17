@@ -188,7 +188,7 @@ def plot_PSD(x, fs: float, Nbins: int =None, window='flattop', scaling = 'densit
     x = np.asarray(x)
     if x.ndim == 1:  x = x[:, None]
 
-    if all(np.iscomplex(x)):
+    if np.all(np.iscomplex(x)):
         return_onesided = False
 
     f, Pxx = periodogram(
