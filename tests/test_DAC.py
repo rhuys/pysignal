@@ -7,7 +7,7 @@
 #
 import numpy as np
 import matplotlib.pyplot as plt
-import pysignal as ps
+import pysignal as ps 
 
 fs = 8e6            # Simulation sample rate
 
