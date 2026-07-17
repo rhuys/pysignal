@@ -25,18 +25,14 @@ ov_dac = 4      # dac oversampling factor
 fs_dac = fs / ov_dac  # adc sample rate
 df = fs / 256   # display bin size for the PSD.  We make it the same for all plots independent on the sampling rate
 
-## generate input signal
-#t = np.arange(N)/fs
-#x  = np.sin(2*np.pi*t * 0.8e6)
-
 # create a bandpass signal
 x = ps.bandpass_noise(N, fs, f_sig, B_sig, P_sig);
 
 # normalize the signal to match maximum output swing
 gain = 1/np.max(abs(x))
-x = x*gain
+x = ps.quantize(x*gain, nbits_dac, x_range = (-1, 1), int_out = True)
 
-x_adc = ps.adc(x, fs, fs_adc, nbits=nbits_adc, dither = True)
+x_dac = ps.dac(x, fs, fs_dac, nbits=nbits_dac, dither = True)
 
 ### PLOTTING
 
